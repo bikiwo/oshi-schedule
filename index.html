@@ -118,7 +118,7 @@
     cursor: pointer; transition: all 0.15s;
   }
   .filter-chip.active-chip {
-    color: #fff !important;
+    color: inherit;
   }
 
   /* =====================
@@ -597,6 +597,7 @@ function buildFilterBar() {
     const color = tag === 'すべて' ? '#c8ff46' : (TAG_COLORS[tag] || DEFAULT_COLOR);
     chip.style.borderColor = color;
     chip.style.color = tag === activeTag ? (tag === 'すべて' ? '#2d2d2d' : '#fff') : color;
+    
     if (tag === activeTag) chip.style.background = color;
     chip.addEventListener('click', () => { activeTag = tag; buildFilterBar(); render(); });
     bar.appendChild(chip);
