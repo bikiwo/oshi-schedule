@@ -3,27 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>推しの予定帳</title>
+<title>18TRIPリアイベ予定</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
   /* =====================
      CSS変数・リセット
   ===================== */
   :root {
-    --bg:        #f0ede8;
-    --surface:   #ffffff;
-    --surface2:  #faf8f5;
-    --border:    #ede9e3;
-    --text-main: #2d2d2d;
-    --text-sub:  #888;
-    --text-mute: #bbb;
-    --accent:    #e07b54;
-    --accent-lt: rgba(224,123,84,0.12);
-    --sun:       #e05555;
-    --sat:       #4a80d4;
-    --radius:    14px;
-    --shadow:    0 2px 12px rgba(0,0,0,0.07);
-  }
+  --bg:        #1e2235;
+  --surface:   #2d3350;
+  --surface2:  #2d3350;
+  --border:    #363d5a;
+  --text-main: #ffffff;
+  --text-sub:  #a0a8c0;
+  --text-mute: #606880;
+  --accent:    #c8ff46;
+  --accent-lt: rgba(200,255,70,0.12);
+  --sun:       #ff6b6b;
+  --sat:       #6bb5ff;
+  --radius:    14px;
+  --shadow:    0 2px 12px rgba(0,0,0,0.3);
+}
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
   html { font-size: 16px; }
   body {
@@ -169,7 +169,7 @@
   .cal-day.is-sun .day-num { color: var(--sun); }
   .cal-day.is-sat .day-num { color: var(--sat); }
   .cal-day.is-today .day-num {
-    background: var(--accent); color: #fff !important;
+    background: var(--accent); color: #2d2d2d !important;
   }
   .cal-day.other-month .day-num { color: var(--text-mute); }
 
@@ -371,7 +371,7 @@
 <!-- ヘッダー -->
 <div class="header">
   <div class="header-top">
-    <div class="header-title">推しの<span>予定帳</span></div>
+    <div class="header-title">18TRIP<span>イベント予定表</span></div>
     <div class="month-nav">
       <button class="nav-btn" id="prev-btn">‹</button>
       <div class="month-label" id="month-label">2025年5月</div>
@@ -439,12 +439,12 @@ const SHEET_NAME = 'Sheet1';
 // タグごとの色（タグ名: カラーコード）
 // ★ 自分のタグに合わせて自由に追加・変更してください
 const TAG_COLORS = {
-  'ホロライブ': '#d44f8e',
-  'アイマス':   '#4a80d4',
-  'コミケ':     '#3aa875',
-  '声優':       '#9b59b6',
-  'にじさんじ': '#e07b54',
-  'その他':     '#aaa',
+  'コラボ':     '#a8d8ea', // 淡いブルー
+  '舞台':       '#d4a8ea', // 淡いパープル
+  'バスツアー': '#a8eac8', // 淡いミント
+  'ライブ':     '#eaa8b8', // 淡いピンク
+  'CD':         '#ead4a8', // 淡いゴールド
+  'その他':     '#8a92aa', // グレー
 };
 
 // デフォルト色（タグが未登録の場合）
@@ -594,9 +594,9 @@ function buildFilterBar() {
     const chip = document.createElement('button');
     chip.className = 'filter-chip' + (tag === activeTag ? ' active-chip' : '');
     chip.textContent = tag;
-    const color = tag === 'すべて' ? '#e07b54' : (TAG_COLORS[tag] || DEFAULT_COLOR);
+    const color = tag === 'すべて' ? '#c8ff46' : (TAG_COLORS[tag] || DEFAULT_COLOR);
     chip.style.borderColor = color;
-    chip.style.color = tag === activeTag ? '#fff' : color;
+    chip.style.color = tag === activeTag ? (tag === 'すべて' ? '#2d2d2d' : '#fff') : color;
     if (tag === activeTag) chip.style.background = color;
     chip.addEventListener('click', () => { activeTag = tag; buildFilterBar(); render(); });
     bar.appendChild(chip);
