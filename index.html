@@ -8,22 +8,25 @@
 <style>
   /* =====================
      CSS変数・リセット
+     --bg〜--shadowをここで一元管理。色を変えたいときはここだけ触ればOK
   ===================== */
   :root {
-  --bg:        #1e2235;
-  --surface:   #2d3350;
-  --surface2:  #2d3350;
-  --border:    #363d5a;
-  --text-main: #ffffff;
-  --text-sub:  #a0a8c0;
-  --text-mute: #606880;
-  --accent:    #c8ff46;
-  --accent-lt: rgba(200,255,70,0.12);
-  --sun:       #ff6b6b;
-  --sat:       #6bb5ff;
-  --radius:    14px;
-  --shadow:    0 2px 12px rgba(0,0,0,0.3);
-}
+    --bg:        #1e2235;   /* ページ全体の背景色 */
+    --surface:   #2d3350;   /* カード・ヘッダー等の背景色 */
+    --surface2:  #2d3350;   /* メモ欄など一段深い背景（今はsurfaceと同色） */
+    --border:    #363d5a;   /* 区切り線・枠線の色 */
+    --text-main: #ffffff;   /* メインテキスト（タイトルなど） */
+    --text-sub:  #a0a8c0;   /* サブテキスト（日時・場所など） */
+    --text-mute: #606880;   /* さらに薄いテキスト（ラベル・件数など） */
+    --accent:    #c8ff46;   /* アクセントカラー（今日の日付・「すべて」チップ） */
+    --accent-lt: rgba(200,255,70,0.12); /* アクセントの薄い背景用（現在未使用） */
+    --sun:       #ff6b6b;   /* 日曜の文字色 */
+    --sat:       #6bb5ff;   /* 土曜の文字色 */
+    --radius:    14px;      /* カード類の角丸サイズ */
+    --shadow:    0 2px 12px rgba(0,0,0,0.3); /* カードの影 */
+  }
+
+  /* 全要素のマージン・パディングをリセット。box-sizingはborder-boxで統一 */
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
   html { font-size: 16px; }
   body {
@@ -31,12 +34,14 @@
     color: var(--text-main);
     font-family: 'Noto Sans JP', sans-serif;
     min-height: 100vh;
-    padding-bottom: 80px;
+    padding-bottom: 80px; /* 最下部のコンテンツがギリギリにならないよう余白 */
   }
+  /* buttonはデフォルトスタイルをリセットしてfont-familyを継承させる */
   button { font-family: inherit; cursor: pointer; border: none; background: none; }
 
   /* =====================
-     ローディング
+     ローディング画面
+     データ取得中に全面に表示。取得完了後は .hidden を付けてフェードアウト
   ===================== */
   #loading {
     position: fixed; inset: 0;
@@ -45,14 +50,17 @@
     align-items: center; justify-content: center;
     gap: 16px;
     z-index: 9999;
-    transition: opacity 0.4s;
+    transition: opacity 0.4s; /* フェードアウトのアニメーション */
   }
-  #loading.hidden { opacity: 0; pointer-events: none; }
+  #loading.hidden { opacity: 0; pointer-events: none; } /* 透明にしてクリック無効化 */
   .loading-icon { font-size: 40px; animation: spin 1.2s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes spin { to { transform: rotate(360deg); } } /* くるくる回転 */
   .loading-text { font-size: 13px; color: var(--text-sub); font-weight: 700; letter-spacing: 0.1em; }
 
-  /* エラー画面 */
+  /* =====================
+     エラー画面
+     スプレッドシート取得失敗時に表示。通常は display:none で非表示
+  ===================== */
   #error-screen {
     display: none;
     position: fixed; inset: 0;
@@ -63,19 +71,20 @@
     text-align: center;
     z-index: 9998;
   }
-  #error-screen.show { display: flex; }
-  .error-icon { font-size: 48px; }
+  #error-screen.show { display: flex; } /* .show を付けると表示される */
+  .error-icon  { font-size: 48px; }
   .error-title { font-size: 16px; font-weight: 900; color: var(--text-main); }
-  .error-msg { font-size: 12px; color: var(--text-sub); line-height: 1.7; }
+  .error-msg   { font-size: 12px; color: var(--text-sub); line-height: 1.7; }
 
   /* =====================
      ヘッダー
+     上部に固定（sticky）。スクロールしても常に見える
   ===================== */
   .header {
     background: var(--surface);
     padding: 14px 18px 0;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    position: sticky; top: 0; z-index: 100;
+    position: sticky; top: 0; z-index: 100; /* カレンダーや帯より手前に表示 */
   }
   .header-top {
     display: flex; align-items: center;
@@ -86,14 +95,13 @@
     font-size: 19px; font-weight: 900;
     color: var(--text-main); letter-spacing: 0.02em;
   }
-  .header-title span { color: var(--accent); }
+  .header-title span { color: var(--accent); } /* 「イベント予定」部分をアクセントカラーに */
 
-  .month-nav {
-    display: flex; align-items: center; gap: 8px;
-  }
+  /* 月送りナビ（◀ 2025年5月 ▶） */
+  .month-nav { display: flex; align-items: center; gap: 8px; }
   .month-label {
     font-size: 13px; font-weight: 700; color: var(--text-sub);
-    min-width: 80px; text-align: center;
+    min-width: 80px; text-align: center; /* 月が変わっても幅が変わらないよう固定 */
   }
   .nav-btn {
     width: 30px; height: 30px; border-radius: 50%;
@@ -104,102 +112,120 @@
   }
   .nav-btn:hover { background: var(--border); }
 
-  /* フィルター */
+  /* =====================
+     フィルターチップバー
+     タグ一覧を横スクロールで表示。スクロールバーは非表示
+  ===================== */
   .filter-bar {
     display: flex; gap: 6px;
     overflow-x: auto; padding-bottom: 12px;
-    scrollbar-width: none;
+    scrollbar-width: none; /* Firefox用 */
   }
-  .filter-bar::-webkit-scrollbar { display: none; }
+  .filter-bar::-webkit-scrollbar { display: none; } /* Chrome/Safari用 */
+
+  /* 各チップの基本スタイル。active-chip が付くと背景色が入る（JSで設定） */
   .filter-chip {
     flex-shrink: 0; padding: 4px 13px;
     border-radius: 20px; font-size: 11px; font-weight: 700;
     border: 1.5px solid; white-space: nowrap;
     cursor: pointer; transition: all 0.15s;
   }
-  .filter-chip.active-chip {
-    color: inherit;
-  }
+  .filter-chip.active-chip { color: inherit; } /* 選択中は色をJSで上書きするためinherit */
 
   /* =====================
-     カレンダー
+     カレンダー本体
   ===================== */
   .calendar-wrap {
     background: var(--surface);
     margin: 12px 12px 0;
     border-radius: var(--radius);
-    overflow: hidden;
+    overflow: hidden; /* 角丸の内側に収める */
     box-shadow: var(--shadow);
   }
+
+  /* 曜日ヘッダー行（日〜土） */
   .cal-dow-row {
     display: grid; grid-template-columns: repeat(7, 1fr);
     border-bottom: 1px solid var(--border);
     padding: 6px 0 4px;
   }
-  .cal-dow {
-    text-align: center; font-size: 10px;
-    font-weight: 700; color: var(--text-mute); letter-spacing: 0.05em;
-  }
-  .cal-dow.sun { color: var(--sun); }
-  .cal-dow.sat { color: var(--sat); }
+  .cal-dow      { text-align: center; font-size: 10px; font-weight: 700; color: var(--text-mute); letter-spacing: 0.05em; }
+  .cal-dow.sun  { color: var(--sun); } /* 「日」だけ赤 */
+  .cal-dow.sat  { color: var(--sat); } /* 「土」だけ青 */
 
-  .cal-body { position: relative; }
+  .cal-body { position: relative; } /* 帯（.week-bands）をabsoluteで重ねる基準 */
 
+  /* 週行。7列グリッド。最後の週は下ボーダーなし */
   .cal-week {
     display: grid; grid-template-columns: repeat(7, 1fr);
     border-bottom: 1px solid var(--border);
-    position: relative;
+    position: relative; /* 帯レイヤーをここ基準でabsolute配置 */
   }
   .cal-week:last-child { border-bottom: none; }
 
+  /* 1日分のセル */
   .cal-day {
-    min-height: 68px;
+    min-height: 68px; /* 帯が3行入るよう最低限の高さを確保 */
     padding: 4px 2px 2px;
     border-right: 1px solid var(--border);
     position: relative;
   }
-  .cal-day:last-child { border-right: none; }
+  .cal-day:last-child { border-right: none; } /* 土曜の右ボーダーは不要 */
 
+  /* 日付の数字（中央揃えの丸バッジ） */
   .day-num {
     font-size: 11px; font-weight: 700; color: var(--text-sub);
     width: 22px; height: 22px;
     display: flex; align-items: center; justify-content: center;
     border-radius: 50%; margin: 0 auto 2px;
   }
-  .cal-day.is-sun .day-num { color: var(--sun); }
-  .cal-day.is-sat .day-num { color: var(--sat); }
+  .cal-day.is-sun .day-num   { color: var(--sun); }  /* 日曜は赤 */
+  .cal-day.is-sat .day-num   { color: var(--sat); }  /* 土曜は青 */
   .cal-day.is-today .day-num {
-    background: var(--accent); color: #2d2d2d !important;
+    background: var(--accent); color: #2d2d2d !important; /* 今日はアクセント背景 */
   }
-  .cal-day.other-month .day-num { color: var(--text-mute); }
+  .cal-day.other-month .day-num { color: var(--text-mute); } /* 前後月の日付はさらに薄く */
 
-  /* 帯イベント */
+  /* =====================
+     カレンダー帯（イベントバー）
+     .week-bands を週行に absolute で重ね、その中に個々の .band を配置する
+  ===================== */
   .week-bands {
     position: absolute;
-    top: 28px; left: 0; right: 0;
-    pointer-events: none;
+    top: 28px; /* 日付数字の下から始まる */
+    left: 0; right: 0;
+    pointer-events: none; /* 帯以外の部分はクリック透過 */
   }
+
+  /* 個々のイベント帯。left/widthはJSで列位置から計算して設定 */
   .band {
     position: absolute;
     height: 17px;
     display: flex; align-items: center;
     padding: 0 5px;
-    font-size: 9px; font-weight: 700; color: #fff;
+    font-size: 9px; font-weight: 700;
+    color: #2d2d2d; /* 帯テキスト色：背景が淡い色なので暗色で */
+    /* 白文字に戻す場合: color: #fff; */
     overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
-    pointer-events: all; cursor: pointer;
+    pointer-events: all; /* 帯自体はクリック可能に戻す */
+    cursor: pointer;
     transition: opacity 0.15s;
     z-index: 1;
   }
   .band:hover { opacity: 0.82; }
+
+  /* 帯の縦位置。row1〜3 で最大3本まで重ねて表示 */
   .band.row1 { top: 0; }
   .band.row2 { top: 19px; }
   .band.row3 { top: 38px; }
-  .band.r-start { border-radius: 4px 0 0 4px; }
-  .band.r-end   { border-radius: 0 4px 4px 0; }
-  .band.r-full  { border-radius: 4px; }
-  .band.r-mid   { border-radius: 0; }
 
-  /* +N more */
+  /* 帯の角丸パターン。週をまたぐときに開始端・終了端だけ丸くする */
+  .band.r-start { border-radius: 4px 0 0 4px; } /* 開始日のある週：左端だけ丸 */
+  .band.r-end   { border-radius: 0 4px 4px 0; } /* 終了日のある週：右端だけ丸 */
+  .band.r-full  { border-radius: 4px; }          /* 1週内で完結：両端丸 */
+  .band.r-mid   { border-radius: 0; }            /* 途中週：角丸なし */
+
+  /* 表示しきれないイベントの「+N件」表示（現在は実装済みだが描画は省略中） */
   .band-more {
     position: absolute;
     font-size: 9px; font-weight: 700;
@@ -208,24 +234,18 @@
   }
 
   /* =====================
-     リスト
+     イベントリスト（カレンダー下部）
   ===================== */
-  .list-section {
-    margin: 12px 12px 0;
-  }
+  .list-section { margin: 12px 12px 0; }
   .list-header {
     display: flex; align-items: center;
     justify-content: space-between;
     padding: 0 4px; margin-bottom: 8px;
   }
-  .list-label {
-    font-size: 10px; font-weight: 700;
-    color: var(--text-mute); letter-spacing: 0.15em;
-  }
-  .list-count {
-    font-size: 10px; color: var(--text-mute);
-  }
+  .list-label { font-size: 10px; font-weight: 700; color: var(--text-mute); letter-spacing: 0.15em; }
+  .list-count { font-size: 10px; color: var(--text-mute); } /* 「N件」の表示 */
 
+  /* イベントが0件のときのプレースホルダー */
   .list-empty {
     background: var(--surface);
     border-radius: var(--radius);
@@ -237,6 +257,7 @@
   }
   .list-empty span { display: block; font-size: 32px; margin-bottom: 8px; }
 
+  /* イベントカード1枚分 */
   .event-card {
     background: var(--surface);
     border-radius: var(--radius);
@@ -247,30 +268,30 @@
     cursor: pointer;
     transition: transform 0.12s, box-shadow 0.12s;
   }
-  .event-card:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(0,0,0,0.1); }
+  .event-card:hover  { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(0,0,0,0.1); }
   .event-card:active { transform: translateY(0); }
 
-  .card-bar { width: 5px; flex-shrink: 0; }
+  /* カード左端のタグカラーバー */
+  .card-bar  { width: 5px; flex-shrink: 0; }
   .card-body { padding: 12px 14px; flex: 1; min-width: 0; }
 
-  .card-top {
-    display: flex; align-items: flex-start;
-    gap: 8px; margin-bottom: 4px;
-  }
+  /* タイトルとタグチップを横並びに */
+  .card-top  { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
   .card-name {
     font-size: 13px; font-weight: 700;
     color: var(--text-main); line-height: 1.4;
-    flex: 1; min-width: 0;
+    flex: 1; min-width: 0; /* 長いタイトルが溢れないよう */
   }
-  .card-tag {
+  .card-tag  {
     font-size: 10px; font-weight: 700;
     padding: 2px 8px; border-radius: 10px;
-    white-space: nowrap; flex-shrink: 0;
+    white-space: nowrap; flex-shrink: 0; /* タグ名は折り返さない */
   }
-  .card-meta {
-    font-size: 11px; color: var(--text-sub);
-    display: flex; gap: 10px; flex-wrap: wrap;
-  }
+
+  /* 日時・場所の行 */
+  .card-meta { font-size: 11px; color: var(--text-sub); display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* メモ欄（左にボーダーラインを引いて区別） */
   .card-memo {
     margin-top: 7px; font-size: 11px;
     color: var(--text-sub); background: var(--surface2);
@@ -280,57 +301,47 @@
 
   /* =====================
      詳細モーダル
+     カードタップで下からスライドイン。overlay をタップすると閉じる
   ===================== */
   .modal-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.35);
+    background: rgba(0,0,0,0.35); /* 半透明の暗幕 */
     z-index: 500;
     display: flex; align-items: flex-end; justify-content: center;
-    opacity: 0; pointer-events: none;
+    opacity: 0; pointer-events: none; /* 非表示時はクリック透過 */
     transition: opacity 0.2s;
   }
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal-overlay.open { opacity: 1; pointer-events: all; } /* .open で表示＆クリック有効化 */
+
   .modal {
     background: var(--surface);
-    border-radius: 20px 20px 0 0;
+    border-radius: 20px 20px 0 0; /* 下からスライドするシート風 */
     width: 100%; max-width: 560px;
     padding: 20px 20px 40px;
-    transform: translateY(20px);
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    max-height: 85vh; overflow-y: auto;
+    transform: translateY(20px); /* 最初は少し下にオフセット */
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); /* バウンス感のあるイーズ */
+    max-height: 85vh; overflow-y: auto; /* 長いコンテンツはスクロール */
   }
-  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-overlay.open .modal { transform: translateY(0); } /* 開くと定位置へ */
+
+  /* モーダル上部のドラッグハンドル風の線 */
   .modal-handle {
     width: 36px; height: 4px;
     background: var(--border); border-radius: 2px;
     margin: 0 auto 16px;
   }
-  .modal-tag {
-    display: inline-block;
-    font-size: 11px; font-weight: 700;
-    padding: 3px 12px; border-radius: 12px;
-    margin-bottom: 10px;
-  }
-  .modal-title {
-    font-size: 17px; font-weight: 900;
-    line-height: 1.4; margin-bottom: 12px;
-  }
-  .modal-row {
-    display: flex; gap: 8px; align-items: flex-start;
-    margin-bottom: 8px; font-size: 13px; color: var(--text-sub);
-  }
-  .modal-row-icon { width: 20px; text-align: center; flex-shrink: 0; }
-  .modal-memo-box {
-    margin-top: 14px; background: var(--surface2);
-    border-radius: 10px; padding: 12px 14px;
-    font-size: 13px; color: var(--text-sub);
-    line-height: 1.7; border-left: 3px solid var(--border);
-  }
-  .modal-memo-label {
-    font-size: 10px; font-weight: 700;
-    color: var(--text-mute); letter-spacing: 0.1em;
-    margin-bottom: 6px;
-  }
+  .modal-tag   { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 12px; border-radius: 12px; margin-bottom: 10px; }
+  .modal-title { font-size: 17px; font-weight: 900; line-height: 1.4; margin-bottom: 12px; }
+
+  /* アイコン＋テキストの横並び行（日時・場所） */
+  .modal-row      { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; font-size: 13px; color: var(--text-sub); }
+  .modal-row-icon { width: 20px; text-align: center; flex-shrink: 0; } /* アイコン幅を固定してテキストを揃える */
+
+  /* メモボックス */
+  .modal-memo-box   { margin-top: 14px; background: var(--surface2); border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--text-sub); line-height: 1.7; border-left: 3px solid var(--border); }
+  .modal-memo-label { font-size: 10px; font-weight: 700; color: var(--text-mute); letter-spacing: 0.1em; margin-bottom: 6px; }
+
+  /* 閉じるボタン */
   .modal-close {
     width: 100%; margin-top: 16px;
     padding: 13px; border-radius: 12px;
@@ -341,34 +352,35 @@
   .modal-close:hover { background: var(--border); }
 
   /* =====================
-     レスポンシブ（PC）
+     PC向けレスポンシブ（600px以上）
+     余白を広げ、モーダルを画面中央に表示
   ===================== */
   @media (min-width: 600px) {
-    .header { padding: 16px 24px 0; }
+    .header        { padding: 16px 24px 0; }
     .calendar-wrap { margin: 16px 16px 0; }
-    .list-section { margin: 16px 16px 0; }
-    .cal-day { min-height: 80px; }
-    .modal { border-radius: 16px; margin: auto; margin-bottom: 0; }
-    .modal-overlay { align-items: center; }
+    .list-section  { margin: 16px 16px 0; }
+    .cal-day       { min-height: 80px; } /* PCは少し高さを増やす */
+    .modal         { border-radius: 16px; margin: auto; margin-bottom: 0; } /* 角丸を全周に */
+    .modal-overlay { align-items: center; } /* 下ではなく中央に配置 */
   }
 </style>
 </head>
 <body>
 
-<!-- ローディング -->
+<!-- ローディング：データ取得中に表示 -->
 <div id="loading">
   <div class="loading-icon">🌸</div>
   <div class="loading-text">データを読み込み中...</div>
 </div>
 
-<!-- エラー -->
+<!-- エラー：スプレッドシート取得失敗時に表示 -->
 <div id="error-screen">
   <div class="error-icon">😢</div>
   <div class="error-title">データを読み込めませんでした</div>
   <div class="error-msg" id="error-msg">スプレッドシートの設定を確認してください。<br>SHEET_ID が正しく設定されているか確認してみてください。</div>
 </div>
 
-<!-- ヘッダー -->
+<!-- ヘッダー：タイトル・月送りナビ・フィルターチップ -->
 <div class="header">
   <div class="header-top">
     <div class="header-title">18TRIP<span>イベント予定</span></div>
@@ -378,13 +390,13 @@
       <button class="nav-btn" id="next-btn">›</button>
     </div>
   </div>
-  <div class="filter-bar" id="filter-bar">
-    <!-- JSで生成 -->
-  </div>
+  <!-- フィルターチップは buildFilterBar() でJSが生成 -->
+  <div class="filter-bar" id="filter-bar"></div>
 </div>
 
-<!-- カレンダー -->
+<!-- カレンダー本体 -->
 <div class="calendar-wrap">
+  <!-- 曜日ヘッダー（固定） -->
   <div class="cal-dow-row">
     <div class="cal-dow sun">日</div>
     <div class="cal-dow">月</div>
@@ -392,12 +404,13 @@
     <div class="cal-dow">水</div>
     <div class="cal-dow">木</div>
     <div class="cal-dow">金</div>
-    <div class="cal-dow">土</div>
+    <div class="cal-dow sat">土</div>
   </div>
+  <!-- 日付グリッドは renderCalendar() でJSが生成 -->
   <div class="cal-body" id="cal-body"></div>
 </div>
 
-<!-- リスト -->
+<!-- イベントリスト：renderList() でJSが生成 -->
 <div class="list-section">
   <div class="list-header">
     <div class="list-label">UPCOMING EVENTS</div>
@@ -406,7 +419,7 @@
   <div id="event-list"></div>
 </div>
 
-<!-- 詳細モーダル -->
+<!-- 詳細モーダル：openModal() で内容を注入して表示 -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal" id="modal">
     <div class="modal-handle"></div>
@@ -423,50 +436,52 @@
 // ============================================================
 const SHEET_ID = '1TbvZSgvJR6-St0wZPjf_bM_03svIqSnlVNQwzG20TRg';
 
-// シート名（デフォルトは Sheet1）
+// シート名（スプレッドシート下部のタブ名と合わせる）
 const SHEET_NAME = 'Sheet1';
 
 // ============================================================
-//  スプレッドシートの列フォーマット（1行目はヘッダー）
-//  A: タイトル
-//  B: 開始日（例: 2025/5/3）
-//  C: 終了日（例: 2025/5/5、1日のみのときは開始日と同じか空欄）
-//  D: 場所
-//  E: タグ（例: ホロライブ）
-//  F: メモ
+//  スプレッドシートの列フォーマット（1行目はヘッダー行）
+//  A列: タイトル（例: hololive SUPER EXPO 2025）
+//  B列: 開始日（例: 2025/5/3）
+//  C列: 終了日（例: 2025/5/5　※1日だけのときは開始日と同じか空欄でOK）
+//  D列: 場所（例: 幕張メッセ）
+//  E列: タグ（例: LIVE　※下の TAG_COLORS のキーと一致させること）
+//  F列: メモ（任意。空欄でもOK）
 // ============================================================
 
-// タグごとの色（タグ名: カラーコード）
-// ★ 自分のタグに合わせて自由に追加・変更してください
+// タグごとの色定義（タグ名: カラーコード）
+// ★ タグを追加・変更したいときはここを編集する
+// ★ この定義順がフィルターバーの並び順にもなる（buildFilterBar参照）
 const TAG_COLORS = {
-  'COLLAB':     '#a8d8ea', // 淡いブルー
-  'STAGE':       '#d4a8ea', // 淡いパープル
-  'TOUR': '#a8eac8', // 淡いミント
-  'LIVE':     '#eaa8b8', // 淡いピンク
-  'MUSIC':         '#ead4a8', // 淡いゴールド
-  'OTHER':     '#8a92aa', // グレー
+  'COLLAB': '#a8d8ea', // 淡いブルー
+  'STAGE':  '#d4a8ea', // 淡いパープル
+  'TOUR':   '#a8eac8', // 淡いミント
+  'LIVE':   '#eaa8b8', // 淡いピンク
+  'MUSIC':  '#ead4a8', // 淡いゴールド
+  'OTHER':  '#8a92aa', // グレー
 };
 
-// デフォルト色（タグが未登録の場合）
+// TAG_COLORSに登録されていないタグが来たときのデフォルト色
 const DEFAULT_COLOR = '#aaa';
 
 // ============================================================
-//  内部状態
+//  アプリの状態管理
 // ============================================================
-let allEvents = [];         // 全イベント
-let activeTag = 'すべて';  // 選択中フィルター
-let currentYear, currentMonth; // 表示中の年月
+let allEvents    = [];          // スプレッドシートから取得した全イベント
+let activeTag    = 'すべて';   // 現在選択中のフィルタータグ
+let currentYear, currentMonth; // カレンダーに表示中の年・月（monthは0始まり）
 
 // ============================================================
-//  起動
+//  起動処理（即時実行）
+//  SHEET_IDが未設定ならサンプルデータ、設定済みならシートを取得
 // ============================================================
 (async () => {
-  const today = new Date();
+  const today  = new Date();
   currentYear  = today.getFullYear();
-  currentMonth = today.getMonth(); // 0-indexed
+  currentMonth = today.getMonth(); // 0始まり（0=1月、11=12月）
 
   if (SHEET_ID === 'YOUR_SHEET_ID_HERE') {
-    // デモモード：サンプルデータで表示
+    // デモモード：SHEET_IDを書き換えるまではサンプルデータで動作確認できる
     allEvents = getSampleEvents();
     hideLoading();
     init();
@@ -476,16 +491,19 @@ let currentYear, currentMonth; // 表示中の年月
       hideLoading();
       init();
     } catch (e) {
-      showError(e.message);
+      showError(e.message); // 取得失敗時はエラー画面を表示
     }
   }
 })();
 
+// ローディング画面をフェードアウトして非表示にする
 function hideLoading() {
   const el = document.getElementById('loading');
   el.classList.add('hidden');
-  setTimeout(() => el.style.display = 'none', 400);
+  setTimeout(() => el.style.display = 'none', 400); // フェード完了後にDOMから除去
 }
+
+// エラー画面を表示してメッセージを差し込む
 function showError(msg) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('error-screen').classList.add('show');
@@ -493,7 +511,8 @@ function showError(msg) {
 }
 
 // ============================================================
-//  スプレッドシート取得
+//  スプレッドシートからCSVを取得してイベント配列に変換
+//  gviz/tq?tqx=out:csv を使うと認証不要で公開シートを取得できる
 // ============================================================
 async function fetchSheet() {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
@@ -503,80 +522,93 @@ async function fetchSheet() {
   return parseCSV(csv);
 }
 
+// CSVテキストを行ごとにパースしてイベントオブジェクトの配列を返す
 function parseCSV(csv) {
-  const lines = csv.trim().split('\n');
+  const lines  = csv.trim().split('\n');
   const events = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = splitCSVLine(lines[i]);
-    if (!cols[0] || !cols[1]) continue;
-    const title  = clean(cols[0]);
-    const start  = parseDate(clean(cols[1]));
-    const end    = cols[2] && clean(cols[2]) ? parseDate(clean(cols[2])) : new Date(start);
-    const place  = clean(cols[3] || '');
-    const tag    = clean(cols[4] || 'その他');
-    const memo   = clean(cols[5] || '');
-    if (!start) continue;
+
+  for (let i = 1; i < lines.length; i++) { // 1行目はヘッダーなのでスキップ
+    const cols  = splitCSVLine(lines[i]);
+    if (!cols[0] || !cols[1]) continue;     // タイトルか開始日が空ならスキップ
+
+    const title = clean(cols[0]);
+    const start = parseDate(clean(cols[1]));
+    // 終了日が空のときは開始日と同じ日にする（1日イベント扱い）
+    const end   = cols[2] && clean(cols[2]) ? parseDate(clean(cols[2])) : new Date(start);
+    const place = clean(cols[3] || '');
+    const tag   = clean(cols[4] || 'その他');
+    const memo  = clean(cols[5] || '');
+
+    if (!start) continue; // 日付パース失敗行はスキップ
     events.push({ title, start, end, place, tag, memo });
   }
+
+  // 開始日の昇順でソートして返す
   return events.sort((a, b) => a.start - b.start);
 }
 
+// CSV1行をカンマ区切りで分割する（ダブルクォート内のカンマは無視）
 function splitCSVLine(line) {
   const result = [];
   let cur = '', inQ = false;
   for (let i = 0; i < line.length; i++) {
     const c = line[i];
-    if (c === '"') { inQ = !inQ; continue; }
-    if (c === ',' && !inQ) { result.push(cur); cur = ''; continue; }
+    if (c === '"') { inQ = !inQ; continue; }              // クォートの開閉を追跡
+    if (c === ',' && !inQ) { result.push(cur); cur = ''; continue; } // クォート外のカンマで分割
     cur += c;
   }
-  result.push(cur);
+  result.push(cur); // 最後のフィールドを追加
   return result;
 }
 
+// 先頭・末尾のダブルクォートと空白を除去する
 function clean(s) { return s.replace(/^"|"$/g, '').trim(); }
 
+// "YYYY/M/D" または "YYYY-M-D" 形式の文字列をDateオブジェクトに変換
 function parseDate(s) {
   if (!s) return null;
   const m = s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
   if (!m) return null;
-  return new Date(+m[1], +m[2] - 1, +m[3]);
+  return new Date(+m[1], +m[2] - 1, +m[3]); // 月は0始まりなので-1
 }
 
 // ============================================================
-//  サンプルデータ（SHEET_ID未設定時のデモ用）
+//  サンプルデータ（SHEET_IDを設定するまでのデモ表示用）
+//  タグは TAG_COLORS のキーと合わせておく
 // ============================================================
 function getSampleEvents() {
   const y = new Date().getFullYear();
   const m = new Date().getMonth();
-  const d = (day) => new Date(y, m, day);
+  const d = (day) => new Date(y, m, day); // 今月の指定日付を返すショートハンド
   return [
-    { title: 'hololive SUPER EXPO 2025',          start: d(3),  end: d(3),  place: '幕張メッセ',               tag: 'ホロライブ', memo: 'チケット申込期限に注意！グッズ先行もチェック' },
-    { title: '花澤香菜 LIVE TOUR 2025',            start: d(9),  end: d(10), place: 'Zepp Haneda',             tag: '声優',       memo: '' },
-    { title: 'THE IDOLM@STER MILLION LIVE! 12th', start: d(17), end: d(18), place: 'さいたまスーパーアリーナ', tag: 'アイマス',   memo: '2日間参戦予定！' },
-    { title: 'コミックマーケット107',              start: d(24), end: d(26), place: '東京ビッグサイト',         tag: 'コミケ',     memo: 'サークルチェックまだ！壁サー優先で回る' },
-    { title: 'にじさんじ甲子園 2025',              start: d(28), end: d(28), place: '京セラドーム大阪',         tag: 'にじさんじ', memo: '' },
+    { title: 'hololive SUPER EXPO 2025',          start: d(3),  end: d(3),  place: '幕張メッセ',               tag: 'COLLAB', memo: 'チケット申込期限に注意！グッズ先行もチェック' },
+    { title: '花澤香菜 LIVE TOUR 2025',            start: d(9),  end: d(10), place: 'Zepp Haneda',             tag: 'TOUR',   memo: '' },
+    { title: 'THE IDOLM@STER MILLION LIVE! 12th', start: d(17), end: d(18), place: 'さいたまスーパーアリーナ', tag: 'LIVE',   memo: '2日間参戦予定！' },
+    { title: 'コミックマーケット107',              start: d(24), end: d(26), place: '東京ビッグサイト',         tag: 'STAGE',  memo: 'サークルチェックまだ！壁サー優先で回る' },
+    { title: 'にじさんじ甲子園 2025',              start: d(28), end: d(28), place: '京セラドーム大阪',         tag: 'MUSIC',  memo: '' },
   ];
 }
 
 // ============================================================
-//  初期化
+//  初期化：ボタンのイベントリスナーを登録してから最初の描画を実行
 // ============================================================
 function init() {
   buildFilterBar();
   render();
 
+  // 月送りボタン
   document.getElementById('prev-btn').addEventListener('click', () => {
     currentMonth--;
-    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; } // 1月→前年12月に繰り上がり
     render();
   });
   document.getElementById('next-btn').addEventListener('click', () => {
     currentMonth++;
-    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; } // 12月→翌年1月に繰り下がり
     render();
   });
 
+  // モーダルの閉じ方：暗幕クリックと閉じるボタンの両方に対応
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === document.getElementById('modal-overlay')) closeModal();
   });
@@ -584,41 +616,64 @@ function init() {
 }
 
 // ============================================================
-//  フィルターバー
+//  フィルターバーを構築
+//  TAG_COLORSの定義順でタグを並べる（実際に使われているものだけ表示）
 // ============================================================
 function buildFilterBar() {
+  const tagOrder = Object.keys(TAG_COLORS);
+  // TAG_COLORSに定義されたタグのうち、実際にデータに存在するものだけ抽出
+  const usedTags = tagOrder.filter(t => allEvents.some(e => e.tag === t));
+  // TAG_COLORSに未登録のタグがシートにあれば末尾に追加（色はDEFAULT_COLOR）
+  const extraTags = [...new Set(allEvents.map(e => e.tag))].filter(t => !TAG_COLORS[t]);
+  const tags = ['すべて', ...usedTags, ...extraTags];
+
+  /* 元に戻す（出現順に並べる）場合は上の4行をコメントアウトして下を有効に:
   const tags = ['すべて', ...new Set(allEvents.map(e => e.tag))];
-  const bar  = document.getElementById('filter-bar');
-  bar.innerHTML = '';
+  */
+
+  const bar = document.getElementById('filter-bar');
+  bar.innerHTML = ''; // 再描画のため一旦クリア
+
   tags.forEach(tag => {
-    const chip = document.createElement('button');
+    const chip  = document.createElement('button');
     chip.className = 'filter-chip' + (tag === activeTag ? ' active-chip' : '');
     chip.textContent = tag;
+
+    // 「すべて」はアクセントカラー、それ以外はTAG_COLORSの色を使う
     const color = tag === 'すべて' ? '#c8ff46' : (TAG_COLORS[tag] || DEFAULT_COLOR);
     chip.style.borderColor = color;
+
+    // 選択中のチップは背景を塗って文字色を暗色に、非選択はボーダー色と同色テキスト
+    chip.style.color = tag === activeTag ? '#2d2d2d' : color;
+    /* 選択時に他タグを白文字に戻す場合はここを変更:
     chip.style.color = tag === activeTag ? (tag === 'すべて' ? '#2d2d2d' : '#fff') : color;
-    
+    */
+
     if (tag === activeTag) chip.style.background = color;
+
+    // チップをクリックしたらフィルターを切り替えて再描画
     chip.addEventListener('click', () => { activeTag = tag; buildFilterBar(); render(); });
     bar.appendChild(chip);
   });
 }
 
 // ============================================================
-//  フィルター済みイベント
+//  フィルター適用済みのイベント一覧を返す
 // ============================================================
+// 選択タグで絞り込む（「すべて」のときは全件返す）
 function filteredEvents() {
   return activeTag === 'すべて' ? allEvents : allEvents.filter(e => e.tag === activeTag);
 }
 
+// 指定の年月に表示すべきイベントを返す（月をまたぐ複数日イベントも含む）
 function eventsInMonth(y, m) {
   const first = new Date(y, m, 1);
-  const last  = new Date(y, m + 1, 0);
+  const last  = new Date(y, m + 1, 0); // 月末日（翌月の0日＝今月末）
   return filteredEvents().filter(e => e.start <= last && e.end >= first);
 }
 
 // ============================================================
-//  メインレンダー
+//  月ラベルの更新とカレンダー・リストの再描画
 // ============================================================
 function render() {
   const y = currentYear, m = currentMonth;
@@ -629,32 +684,34 @@ function render() {
 }
 
 // ============================================================
-//  カレンダー描画
+//  カレンダーグリッドの描画
 // ============================================================
 function renderCalendar(y, m) {
-  const body   = document.getElementById('cal-body');
-  body.innerHTML = '';
+  const body = document.getElementById('cal-body');
+  body.innerHTML = ''; // 再描画のためクリア
 
-  const today  = new Date();
-  const first  = new Date(y, m, 1);
-  const last   = new Date(y, m + 1, 0);
-  const startDow = first.getDay(); // 0=日
-  const totalDays = last.getDate();
+  const today     = new Date();
+  const first     = new Date(y, m, 1);
+  const startDow  = first.getDay();              // 月初の曜日（0=日〜6=土）
+  const totalDays = new Date(y, m + 1, 0).getDate(); // 月の総日数
 
-  // グリッド上の全セル
+  // グリッドに並べる全セルを生成（前月末・今月・翌月初を含む）
   const cells = [];
+  // 月初が日曜でない場合、前月末の日付でグリッド左端を埋める
   for (let i = 0; i < startDow; i++) {
-    const d = new Date(y, m, -startDow + i + 1);
-    cells.push({ date: d, curMonth: false });
+    cells.push({ date: new Date(y, m, -startDow + i + 1), curMonth: false });
   }
+  // 今月の全日付
   for (let d = 1; d <= totalDays; d++) {
     cells.push({ date: new Date(y, m, d), curMonth: true });
   }
+  // 7の倍数になるよう翌月初の日付で右端を埋める
   while (cells.length % 7 !== 0) {
-    const last = cells[cells.length - 1].date;
-    cells.push({ date: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1), curMonth: false });
+    const prev = cells[cells.length - 1].date;
+    cells.push({ date: new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 1), curMonth: false });
   }
 
+  // 7セルずつ週に分割
   const weeks = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
 
@@ -664,38 +721,41 @@ function renderCalendar(y, m) {
     const weekEl = document.createElement('div');
     weekEl.className = 'cal-week';
 
-    // 日付セル
+    // 7日分のセルを描画
     week.forEach(cell => {
       const dayEl = document.createElement('div');
       const dow   = cell.date.getDay();
       let cls = 'cal-day';
-      if (!cell.curMonth) cls += ' other-month';
-      if (dow === 0) cls += ' is-sun';
-      if (dow === 6) cls += ' is-sat';
-      if (isSameDay(cell.date, today)) cls += ' is-today';
+      if (!cell.curMonth)              cls += ' other-month'; // 前後月の日付は薄く
+      if (dow === 0)                   cls += ' is-sun';
+      if (dow === 6)                   cls += ' is-sat';
+      if (isSameDay(cell.date, today)) cls += ' is-today';   // 今日はアクセント表示
       dayEl.className = cls;
       dayEl.innerHTML = `<div class="day-num">${cell.date.getDate()}</div>`;
       weekEl.appendChild(dayEl);
     });
 
-    // 帯レイヤー
+    // ---- 帯（イベントバー）の描画 ----
     const bandsEl = document.createElement('div');
     bandsEl.className = 'week-bands';
 
     const weekStart = week[0].date;
     const weekEnd   = week[6].date;
 
-    // この週に表示するイベントを特定し、行を割り当て
-    const rowAssign = {}; // eventIndex -> row (0,1,2)
-    const rowUsed   = [[], [], []]; // 各行の使用col
+    // 各イベントに row0〜2 を割り当て（重ならないよう先着順で空き行を探す）
+    const rowAssign = {}; // { [eventIndex]: { row, colStart, colEnd } }
+    const rowUsed   = [[], [], []]; // 各行で使用中の列範囲リスト
 
     monthEvents.forEach((ev, ei) => {
-      if (ev.end < weekStart || ev.start > weekEnd) return;
+      if (ev.end < weekStart || ev.start > weekEnd) return; // この週に表示不要ならスキップ
+
+      // 週の範囲にクリップして列インデックス（0〜6）を計算
       const clipStart = ev.start < weekStart ? weekStart : ev.start;
       const clipEnd   = ev.end   > weekEnd   ? weekEnd   : ev.end;
       const colStart  = dayDiff(weekStart, clipStart);
       const colEnd    = dayDiff(weekStart, clipEnd);
-      // 空いている行を探す
+
+      // 空いている行を上から順に探して割り当て
       for (let row = 0; row < 3; row++) {
         const conflict = rowUsed[row].some(([s, e]) => !(colEnd < s || colStart > e));
         if (!conflict) {
@@ -704,27 +764,37 @@ function renderCalendar(y, m) {
           break;
         }
       }
+      // row3以上は現状「+N件」表示に回す予定（未実装）
     });
 
-    // 帯を描画
+    // 割り当て結果を元に帯要素を生成してDOMに追加
     monthEvents.forEach((ev, ei) => {
       const info = rowAssign[ei];
-      if (!info) return;
+      if (!info) return; // 行が割り当てられなかったイベントはスキップ
+
       const { row, colStart, colEnd } = info;
-      const span    = colEnd - colStart + 1;
-      const colW    = 100 / 7;
+      const span  = colEnd - colStart + 1;
+      const colW  = 100 / 7; // 1列の幅（%）
+
+      // この週でイベントが開始・終了するかで角丸パターンを決定
       const isStart = ev.start >= weekStart;
       const isEnd   = ev.end   <= weekEnd;
-      const rClass  = isStart && isEnd ? 'r-full' : isStart ? 'r-start' : isEnd ? 'r-end' : 'r-mid';
-      const color   = TAG_COLORS[ev.tag] || DEFAULT_COLOR;
+      const rClass  = isStart && isEnd ? 'r-full'
+                    : isStart          ? 'r-start'
+                    : isEnd            ? 'r-end'
+                    :                    'r-mid';
+
+      const color = TAG_COLORS[ev.tag] || DEFAULT_COLOR;
 
       const band = document.createElement('div');
       band.className = `band row${row + 1} ${rClass}`;
+      // left/widthをパーセントで計算し、両端に2pxの隙間を設ける
       band.style.left  = `calc(${colW * colStart}% + 2px)`;
       band.style.width = `calc(${colW * span}% - 4px)`;
       band.style.background = color;
+      // イベント名はその週の開始セルにだけ表示（途中週は空文字）
       band.textContent = isStart ? ev.title : '';
-      band.title = ev.title;
+      band.title = ev.title; // ホバーでフルタイトルをツールチップ表示
       band.addEventListener('click', () => openModal(ev));
       bandsEl.appendChild(band);
     });
@@ -735,7 +805,7 @@ function renderCalendar(y, m) {
 }
 
 // ============================================================
-//  リスト描画
+//  イベントリストの描画（カレンダー下部）
 // ============================================================
 function renderList(y, m) {
   const events = eventsInMonth(y, m);
@@ -744,6 +814,7 @@ function renderList(y, m) {
   list.innerHTML = '';
   count.textContent = events.length > 0 ? `${events.length}件` : '';
 
+  // 該当月のイベントがない場合はプレースホルダーを表示
   if (events.length === 0) {
     list.innerHTML = '<div class="list-empty"><span>📭</span>この月のイベントはありません</div>';
     return;
@@ -773,7 +844,7 @@ function renderList(y, m) {
 }
 
 // ============================================================
-//  モーダル
+//  詳細モーダルを開く：コンテンツを差し込んで .open クラスを付加
 // ============================================================
 function openModal(ev) {
   const color = TAG_COLORS[ev.tag] || DEFAULT_COLOR;
@@ -798,32 +869,38 @@ function openModal(ev) {
   document.getElementById('modal-overlay').classList.add('open');
 }
 
+// モーダルを閉じる：.open クラスを外すだけでCSSトランジションが動く
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
 }
 
 // ============================================================
-//  ユーティリティ
+//  ユーティリティ関数
 // ============================================================
+
+// 2つのDateが同じ日付かどうかを判定（時刻は無視）
 function isSameDay(a, b) {
   return a.getFullYear() === b.getFullYear() &&
          a.getMonth()    === b.getMonth()    &&
          a.getDate()     === b.getDate();
 }
 
+// 2つのDateの差を「日数」で返す（カレンダーの列インデックス計算に使用）
 function dayDiff(a, b) {
-  return Math.round((b - a) / 86400000);
+  return Math.round((b - a) / 86400000); // 86400000ms = 1日
 }
 
+// 日付範囲を "M/D(曜)" または "M/D(曜) 〜 M/D(曜)" 形式で返す
 function formatDateRange(start, end) {
   const fmt = d => {
     const DAYS = ['日','月','火','水','木','金','土'];
     return `${d.getMonth()+1}/${d.getDate()}(${DAYS[d.getDay()]})`;
   };
-  if (isSameDay(start, end)) return fmt(start);
+  if (isSameDay(start, end)) return fmt(start); // 1日のみのときは〜なし
   return `${fmt(start)} 〜 ${fmt(end)}`;
 }
 
+// innerHTML に挿入する文字列をエスケープしてXSS対策
 function esc(s) {
   return String(s)
     .replace(/&/g,'&amp;')
